@@ -33,7 +33,7 @@ class precip:
     def reset_index(self):
         if self.reset_count == 0: # Only run if the index has not yet been reset.
             if self.dateindex:
-                self.df = self.df.reset_index()
+                self.df = self.df.reset_index(names=self.datetime_col)
                 self.reset_count += 1
                 return self.df
         else:
@@ -81,7 +81,7 @@ class precip:
             df_PCP[col + "_PCP"] = np.rad2deg(np.arctan(df_PCP[col + "_R_xi"])/np.arctan(df_PCP[col + "_R_yi"]))
         return df_PCP[[i for i in df_PCP.columns if "PCP" in i]]
     
-    def PCD(self):
+    def PCD(self) -> pd.DataFrame:
         print("Computing PCD")
         #print(self.df[self.datetime_col].dtype)
         self.Rxy_i()
