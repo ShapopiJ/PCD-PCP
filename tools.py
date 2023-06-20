@@ -10,7 +10,7 @@ def get_degree(string):
         return degree*-1
     return degree
 
-def load_dst(file = "Rainfall_DST_Prod2.csv", set_index=True):
+def load_dst(file = "Rainfall_DST_Prod3.csv", set_index=True):
     dst = pd.read_csv(file)
     dst["Date Time"] = pd.to_datetime(dst["Date Time"])
     dst1 = dst.set_index("Date Time")
