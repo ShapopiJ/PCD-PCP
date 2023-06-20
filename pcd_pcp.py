@@ -33,9 +33,9 @@ class precip:
     def reset_index(self):
         if self.reset_count == 0: # Only run if the index has not yet been reset.
             if self.dateindex:
-                self.df = self.df.reset_index(names=self.datetime_col)
+                df = self.df.reset_index(names=self.datetime_col)
                 self.reset_count += 1
-                return self.df
+                return df
         else:
             print("Index already reset for main DataFrame. Returning same DataFrame")
             return self.df
@@ -46,47 +46,47 @@ class precip:
 
     def Rxy_i(self):
         if self.rxyi_count == 0:
-            #self.columns = self.get_columns()
-            self.df = self.reset_index()
-            #print(self.datetime_col)
-            self.df["angle"] = self.df[self.datetime_col].dt.month.apply(self.get_angle)
+            
+            date_df = self.reset_index()
+            
+            self.df["angle"] = date_df[self.datetime_col].dt.month.apply(self.get_angle).values ### [x] Test this. We expect angles to be set in main df
+
             for col in self.columns:
-                #print(self.df[self.datetime_col].dt.month)
                 self.df[col + "_R_xi"] = self.df[col]*np.sin(
                     np.deg2rad(self.df["angle"]))
                 self.df[col + "_R_yi"] = self.df[col]*np.cos(
                     np.deg2rad(self.df["angle"]))
-            #print(self.df.head())
+            
             self.rxyi_count += 1
-            return #self.df
+            return 
         else:
             print("Main df already contains Rxi and Ryi computations")
         
     
     def Ri(self):
-        self.df = self.reset_index()
+        
         for col in self.columns:
-            print(col)
-            df = self.df.groupby(self.df[self.datetime_col].dt.year).sum(min_count=1)
+            
+            df = self.df.groupby(pd.Grouper(freq="Y")).sum(min_count=1)
         return df
 
 
     def PCP(self) -> pd.DataFrame:
         print("Computing PCP")
         self.Rxy_i()
-        #df = df.groupby(pd.Grouper(freq="Y")).sum(min_count=1)
 
-        df_PCP = self.df.groupby(self.df[self.datetime_col].dt.year).sum(min_count=1)
+        df_PCP = self.df.groupby(pd.Grouper(freq="Y")).sum(min_count=1) ### [x] Test this. We expect a sum of all collumns
+        
         for col in self.columns:
             df_PCP[col + "_PCP"] = np.rad2deg(np.arctan(df_PCP[col + "_R_xi"])/np.arctan(df_PCP[col + "_R_yi"]))
         return df_PCP[[i for i in df_PCP.columns if "PCP" in i]]
     
     def PCD(self) -> pd.DataFrame:
         print("Computing PCD")
-        #print(self.df[self.datetime_col].dtype)
+        
         self.Rxy_i()
-        #df = self.Ri() # now each column is a sum of the months in the year
-        df_PCD = self.df.groupby(self.df[self.datetime_col].dt.year).sum(min_count=1)
+        
+        df_PCD = self.df.groupby(pd.Grouper(freq="Y")).sum(min_count=1)
         for col in self.columns:
             df_PCD[col + "_PCD"] = np.sqrt( (df_PCD[col + "_R_xi"]**2) + (df_PCD[col + "_R_yi"]**2) )/df_PCD[col] 
         return df_PCD[[i for i in df_PCD.columns if "PCD" in i]]
