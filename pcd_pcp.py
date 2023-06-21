@@ -14,7 +14,7 @@ class precip:
         self.df = df
         keys = list(range(1,13))
         values = list(np.arange(0, 360, 30))
-        values = np.deg2rad(values)
+        #values = np.deg2rad(values)
         self.angles = dict(zip(keys, values))
         self.datetime_col = datetime_col
         self.col = columns
@@ -50,7 +50,7 @@ class precip:
             date_df = self.reset_index()
             
             self.df["angle"] = date_df[self.datetime_col].dt.month.apply(self.get_angle).values ### [x] Test this. We expect angles to be set in main df
-
+            
             for col in self.columns:
                 self.df[col + "_R_xi"] = self.df[col]*np.sin(
                     np.deg2rad(self.df["angle"]))
@@ -74,11 +74,13 @@ class precip:
     def PCP(self) -> pd.DataFrame:
         print("Computing PCP")
         self.Rxy_i()
-
+        #print(self.df[["Rainfall_Oshindete_R_xi", "Rainfall_Oshindete_R_yi", "Rainfall_Oshindete", "angle"]].head(24))
         df_PCP = self.df.groupby(pd.Grouper(freq="Y")).sum(min_count=1) ### [x] Test this. We expect a sum of all collumns
         
         for col in self.columns:
-            df_PCP[col + "_PCP"] = np.rad2deg(np.arctan(df_PCP[col + "_R_xi"])/np.arctan(df_PCP[col + "_R_yi"]))
+            df_PCP[col + "_PCP"] = np.rad2deg(np.arctan(df_PCP[col + "_R_xi"]/df_PCP[col + "_R_yi"]))
+        
+        #print(df_PCP[["Rainfall_Oshindete_PCP", "Rainfall_Oshindete_R_xi", "Rainfall_Oshindete_R_yi"]])
         return df_PCP[[i for i in df_PCP.columns if "PCP" in i]]
     
     def PCD(self) -> pd.DataFrame:
@@ -94,7 +96,7 @@ class precip:
 
 if __name__ == "__main__":
     import tools as t
-    daily = t.load_dst(file = "../Rainfall_DST_Prod2.csv")
+    daily = t.load_dst(file = "../Rainfall_DST_Prod3.csv")
     monthly_sum = daily.groupby(pd.Grouper(freq="M")).sum(min_count=1)
     inst = precip(df = monthly_sum)
     PCP = inst.PCP()
