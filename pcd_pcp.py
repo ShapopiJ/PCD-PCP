@@ -52,9 +52,9 @@ class precip:
             self.df["angle"] = date_df[self.datetime_col].dt.month.apply(self.get_angle).values ### [x] Test this. We expect angles to be set in main df
             
             for col in self.columns:
-                self.df[col + "_R_xi"] = self.df[col]*np.sin(
+                self.df[col + "_R_xi"] = self.df[col]*np.cos(
                     np.deg2rad(self.df["angle"]))
-                self.df[col + "_R_yi"] = self.df[col]*np.cos(
+                self.df[col + "_R_yi"] = self.df[col]*np.sin(
                     np.deg2rad(self.df["angle"]))
             
             self.rxyi_count += 1
@@ -74,13 +74,13 @@ class precip:
     def PCP(self) -> pd.DataFrame:
         print("Computing PCP")
         self.Rxy_i()
-        #print(self.df[["Rainfall_Oshindete_R_xi", "Rainfall_Oshindete_R_yi", "Rainfall_Oshindete", "angle"]].head(24))
+        #print(self.df[["Rainfall_Iitananga_R_xi", "Rainfall_Iitananga_R_yi", "Rainfall_Iitananga", "angle"]].iloc[19:31])
         df_PCP = self.df.groupby(pd.Grouper(freq="Y")).sum(min_count=1) ### [x] Test this. We expect a sum of all collumns
         
         for col in self.columns:
-            df_PCP[col + "_PCP"] = np.rad2deg(np.arctan(df_PCP[col + "_R_xi"]/df_PCP[col + "_R_yi"]))
-        
-        #print(df_PCP[["Rainfall_Oshindete_PCP", "Rainfall_Oshindete_R_xi", "Rainfall_Oshindete_R_yi"]])
+            df_PCP[col + "_PCP"] = df_PCP.apply(lambda row: self.pcp(row[col + "_R_xi"], row[col + "_R_yi"]), axis=1)
+            
+        #print(df_PCP[["Rainfall_Iitananga_PCP", "Rainfall_Iitananga_R_xi", "Rainfall_Iitananga_R_yi"]])
         return df_PCP[[i for i in df_PCP.columns if "PCP" in i]]
     
     def PCD(self) -> pd.DataFrame:
@@ -93,10 +93,32 @@ class precip:
             df_PCD[col + "_PCD"] = np.sqrt( (df_PCD[col + "_R_xi"]**2) + (df_PCD[col + "_R_yi"]**2) )/df_PCD[col] 
         return df_PCD[[i for i in df_PCD.columns if "PCD" in i]]
 
+    def pcp(self, x, y) -> float:
+        """This function takes the R_xi and R_yi and calutlates the tan inverse getting the appropriate angle of the vector in positive x direction
+        This function will return a degree value. 
+        """
+
+        if x > 0 and y > 0: 
+            "For quadrant 0-90"
+            alpha = np.arctan(y/x)
+            return np.rad2deg(alpha)
+        if x < 0 and y > 0: 
+            "For quadrant 90-180"
+            alpha = np.arctan(y/x)
+            return 180 + np.rad2deg(alpha)
+        if x < 0 and y < 0: 
+            "For quadrant 180-270"
+            alpha = np.arctan(y/x)
+            return 180 + np.rad2deg(alpha)
+        if x > 0 and y < 0: 
+            "For quadrant 180-270"
+            alpha = np.arctan(y/x)
+            return 360 + np.rad2deg(alpha)
+        
 
 if __name__ == "__main__":
     import tools as t
-    daily = t.load_dst(file = "../Rainfall_DST_Prod3.csv")
+    daily = t.load_dst(file = "../Rainfall_DST_Prod4.csv")
     monthly_sum = daily.groupby(pd.Grouper(freq="M")).sum(min_count=1)
     inst = precip(df = monthly_sum)
     PCP = inst.PCP()
